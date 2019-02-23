@@ -4,6 +4,8 @@ DDPG
 http://pemami4911.github.io/blog/2016/08/21/ddpg-rl.html
 """
 
+import os
+import time
 import numpy as np
 import gym
 import tensorflow as tf
@@ -30,6 +32,12 @@ TRAIN_INTERVAL = 1
 MAX_EPISODES = 200
 MAX_EP_STEPS = 1000
 GAMMA = 0.99
+LOGDIR = 'logs/' + str(int(time.time())) + '/'
+if not os.path.exists(LOGDIR):
+    os.makedirs(LOGDIR)
+else:
+    print('LOGDIR already exists. You are (un)lucky :)')
+    exit(1)
 
 # log variables
 reward_log = []
@@ -41,7 +49,7 @@ def main():
         actor = ActorNetwork(sess, STATE_DIM, ACTION_DIM, ACTION_BOUND, ACTOR_LEARNING_RATE, TAU, MINIBATCH_SIZE)
         critic = CriticNetwork(sess, STATE_DIM, ACTION_DIM, CRITIC_LEARNING_RATE, TAU, actor.get_num_trainable_vars())
 
-        actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(ACTION_DIM))
+        #actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(ACTION_DIM))
 
         #TODO: Ornstein-Uhlenbeck noise.
 
@@ -64,9 +72,9 @@ def main():
 
             for step in range(MAX_EP_STEPS):
 
-                a = actor.predict(np.reshape(s, (1, STATE_DIM))) + actor_noise()
+                a = actor.predict(np.reshape(s, (1, STATE_DIM))) #+ actor_noise()
                 s2, r, terminal, info = ENV.step(a[0])
-                print(s2)
+                #print(s2)
 
                 replay_buffer.add(np.reshape(s, (STATE_DIM,)), \
                                 np.reshape(a, (ACTION_DIM,)), \
@@ -100,6 +108,8 @@ def main():
                     # Actor を　train.
                     a_outs = actor.predict(s_batch)
                     grads = critic.action_gradients(s_batch, a_outs)
+                    #print(grads[0].shape)
+                    #exit(1)
                     actor.train(s_batch, grads[0])
 
                     # Update target networks.
@@ -128,7 +138,7 @@ def visualize(log, x_name, y_name):
     plt.plot(log)
     plt.xlabel(x_name)
     plt.ylabel(y_name)
-    plt.savefig(y_name+'.png')
+    plt.savefig(LOGDIR + y_name +'.png')
     plt.clf()
 
 
